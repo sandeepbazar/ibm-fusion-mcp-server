@@ -667,6 +667,126 @@ See the comprehensive upstream sync documentation in the original README (lines 
 ./hack/fusion/sync.sh
 ```
 
+## Troubleshooting
+
+### Build Error: "module found but does not contain package"
+
+**Symptom:**
+```
+go: module github.com/munnerz/goautoneg@latest found (v0.0.0-20191010083416-a7dc8b61c822), 
+    but does not contain package github.com/munnerz/goautoneg
+```
+
+**Cause:** Go module cache corruption (common issue, not related to Fusion code)
+
+**Solution:**
+```bash
+# Clean the Go module cache
+rm -rf ~/go/pkg/mod/cache
+go clean -modcache
+
+# Re-download modules
+go mod download
+
+# Try building again
+make build
+```
+
+**Alternative (if above doesn't work):**
+```bash
+# Use Go's built-in cache verification
+go clean -modcache
+GOPROXY=direct go mod download
+make build
+```
+
+### Fusion Tools Not Loading
+
+**Symptom:** Server starts but Fusion tools are not available
+
+**Checklist:**
+1. ✅ Verify environment variable is set:
+   ```bash
+   echo $FUSION_TOOLS_ENABLED
+   # Should output: true
+   ```
+
+2. ✅ Check server logs for registration message:
+   ```bash
+   FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server 2>&1 | grep "Registering IBM Fusion toolset"
+   # Should output: "Registering IBM Fusion toolset"
+   ```
+
+3. ✅ Verify you're on the main branch:
+   ```bash
+   git branch
+   # Should show: * main
+   ```
+
+4. ✅ Rebuild after pulling latest changes:
+   ```bash
+   git pull origin main
+   make build
+   ```
+
+### Multi-Cluster Timeout
+
+**Symptom:** Operations timeout when targeting multiple clusters
+
+**Solution:** Increase timeout in tool arguments:
+```json
+{
+  "name": "fusion.datafoundation.status",
+  "arguments": {
+    "target": {
+      "type": "multi",
+      "clusters": ["cluster1", "cluster2"],
+      "timeout": 60
+    }
+  }
+}
+```
+
+### Component Shows "Not Installed"
+
+**Symptom:** Tool returns `"installed": false` but component exists
+
+**Possible Causes:**
+1. **Namespace mismatch** - Component in different namespace than expected
+2. **CRD not found** - Custom Resource Definition not installed
+3. **Permissions** - Service account lacks RBAC permissions
+
+**Debug Steps:**
+```bash
+# Check if CRDs exist
+kubectl get crds | grep <component-name>
+
+# Check if namespace exists
+kubectl get ns | grep <namespace-name>
+
+# Check RBAC permissions (if running in-cluster)
+kubectl auth can-i list <resource> --as=system:serviceaccount:<namespace>:<serviceaccount>
+```
+
+### Connection Refused / Cluster Unreachable
+
+**Symptom:** Error connecting to cluster
+
+**Solution:**
+```bash
+# Verify kubeconfig is valid
+kubectl config view
+
+# Test connection to each context
+kubectl config get-contexts
+kubectl --context=<context-name> get nodes
+
+# Check if context is accessible
+kubectl config use-context <context-name>
+kubectl get nodes
+```
+
+
 ## Support
 
 **Maintainer:** Sandeep Bazar  
