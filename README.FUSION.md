@@ -14,6 +14,86 @@ This is **ibm-fusion-mcp-server**, a fork of [containers/kubernetes-mcp-server](
 
 **Upstream:** https://github.com/containers/kubernetes-mcp-server
 
+
+## 🚀 Getting Started (No Setup Required!)
+
+**Good news!** All Fusion tools are already integrated into the main branch. No setup scripts needed!
+
+### Quick Start (3 Steps)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/sandeepbazar/ibm-fusion-mcp-server.git
+cd ibm-fusion-mcp-server
+
+# 2. Build the server
+make build
+
+# 3. Run with Fusion tools enabled
+FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server
+```
+
+### Prerequisites
+
+- **Go 1.25+** - For building the server
+- **kubectl** - Configured with access to your cluster(s)
+- **kubeconfig** - Located at `~/.kube/config` or set via `KUBECONFIG` environment variable
+
+### Testing with MCP Inspector
+
+```bash
+# Install MCP Inspector (one-time)
+npm install -g @modelcontextprotocol/inspector
+
+# Run server with inspector
+FUSION_TOOLS_ENABLED=true npx @modelcontextprotocol/inspector $(pwd)/kubernetes-mcp-server
+```
+
+Then open your browser to the URL shown and try your first tool:
+```json
+{
+  "name": "fusion.storage.summary",
+  "arguments": {}
+}
+```
+
+### Multi-Cluster Setup
+
+If you have multiple clusters, ensure your kubeconfig has multiple contexts:
+
+```bash
+# List your contexts
+kubectl config get-contexts
+
+# The server automatically registers all contexts
+# You can then target any cluster in your tools
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FUSION_TOOLS_ENABLED` | `false` | **Required** - Set to `true` to enable Fusion tools |
+| `KUBECONFIG` | `~/.kube/config` | Path to your kubeconfig file |
+| `FUSION_TIMEOUT` | `30` | Operation timeout in seconds |
+
+### Verify Installation
+
+```bash
+# Check that Fusion tools are loaded
+FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server 2>&1 | grep "Registering IBM Fusion toolset"
+
+# Should output: "Registering IBM Fusion toolset"
+```
+
+### What's Included
+
+✅ **11 Fusion MCP Tools** - All domains covered (see Tool Catalog below)  
+✅ **Multi-Cluster Support** - Single, multi, fleet, selector targeting  
+✅ **Comprehensive Documentation** - This file + quick start guide  
+✅ **No External Dependencies** - Everything is built-in  
+✅ **Feature Gated** - Disabled by default, no impact on upstream behavior  
+
 **Purpose:** Provide specialized tools for managing IBM Fusion and OpenShift environments across **single clusters, multiple clusters, and entire fleets**:
 
 ## IBM Fusion Architecture Mapping
