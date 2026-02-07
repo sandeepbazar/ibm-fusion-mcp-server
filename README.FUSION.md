@@ -790,7 +790,6 @@ kubectl get nodes
 ## Support
 
 **Maintainer:** Sandeep Bazar  
-**Email:** sandeep.bazar@in.ibm.com  
 **GitHub:** [@sandeepbazar](https://github.com/sandeepbazar)
 
 For issues, please check:
