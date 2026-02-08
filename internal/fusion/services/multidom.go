@@ -15,7 +15,7 @@ func NewGDPService() *GDPService { return &GDPService{} }
 
 func (s *GDPService) GetStatus(ctx context.Context, client *clients.ClusterClient) (*ComponentStatus, error) {
 	status := &ComponentStatus{}
-	
+
 	// Check for IBM Spectrum Scale/GDP namespaces
 	gdpNamespaces := []string{"ibm-spectrum-scale", "ibm-gdp"}
 	for _, ns := range gdpNamespaces {
@@ -26,7 +26,7 @@ func (s *GDPService) GetStatus(ctx context.Context, client *clients.ClusterClien
 			return status, nil
 		}
 	}
-	
+
 	*status = NotInstalledStatus("GDP/Spectrum Scale not found")
 	return status, nil
 }
@@ -38,13 +38,13 @@ func NewDRService() *DRService { return &DRService{} }
 
 func (s *DRService) GetStatus(ctx context.Context, client *clients.ClusterClient) (*ComponentStatus, error) {
 	status := &ComponentStatus{}
-	
+
 	// Check for Metro DR or Regional DR CRDs
 	drGVRs := []schema.GroupVersionResource{
 		{Group: "ramendr.openshift.io", Version: "v1alpha1", Resource: "drpolicies"},
 		{Group: "ramendr.openshift.io", Version: "v1alpha1", Resource: "drclusters"},
 	}
-	
+
 	for _, gvr := range drGVRs {
 		if CheckCRDExists(ctx, client, gvr) {
 			status.Installed = true
@@ -53,7 +53,7 @@ func (s *DRService) GetStatus(ctx context.Context, client *clients.ClusterClient
 			return status, nil
 		}
 	}
-	
+
 	*status = NotInstalledStatus("DR components not found")
 	return status, nil
 }
@@ -65,7 +65,7 @@ func NewCatalogService() *CatalogService { return &CatalogService{} }
 
 func (s *CatalogService) GetStatus(ctx context.Context, client *clients.ClusterClient) (*ComponentStatus, error) {
 	status := &ComponentStatus{}
-	
+
 	// Check for catalog namespaces
 	catalogNamespaces := []string{"ibm-data-catalog", "openshift-data-catalog"}
 	for _, ns := range catalogNamespaces {
@@ -76,7 +76,7 @@ func (s *CatalogService) GetStatus(ctx context.Context, client *clients.ClusterC
 			return status, nil
 		}
 	}
-	
+
 	*status = NotInstalledStatus("Data Catalog not found")
 	return status, nil
 }
@@ -88,7 +88,7 @@ func NewCASService() *CASService { return &CASService{} }
 
 func (s *CASService) GetStatus(ctx context.Context, client *clients.ClusterClient) (*ComponentStatus, error) {
 	status := &ComponentStatus{}
-	
+
 	// Check for CAS namespace
 	if CheckNamespaceExists(ctx, client, "ibm-cas") {
 		status.Installed = true
@@ -96,7 +96,7 @@ func (s *CASService) GetStatus(ctx context.Context, client *clients.ClusterClien
 		status.Message = "CAS found in namespace: ibm-cas"
 		return status, nil
 	}
-	
+
 	*status = NotInstalledStatus("Content Aware Storage not found")
 	return status, nil
 }
@@ -115,26 +115,26 @@ type ServiceabilitySummary struct {
 
 func (s *ServiceabilityService) GetSummary(ctx context.Context, client *clients.ClusterClient) (*ServiceabilitySummary, error) {
 	summary := &ServiceabilitySummary{}
-	
+
 	// Check for must-gather tools
 	if CheckNamespaceExists(ctx, client, "openshift-must-gather-operator") {
 		summary.MustGatherAvailable = true
 	}
-	
+
 	// Check for logging
 	if CheckNamespaceExists(ctx, client, "openshift-logging") {
 		summary.LoggingConfigured = true
 		summary.Namespace = "openshift-logging"
 	}
-	
+
 	summary.Installed = summary.MustGatherAvailable || summary.LoggingConfigured
 	summary.Ready = summary.Installed
 	summary.Message = "Serviceability components detected"
-	
+
 	if !summary.Installed {
 		summary.ComponentStatus = NotInstalledStatus("No serviceability components found")
 	}
-	
+
 	return summary, nil
 }
 
@@ -153,18 +153,18 @@ type ObservabilitySummary struct {
 
 func (s *ObservabilityService) GetSummary(ctx context.Context, client *clients.ClusterClient) (*ObservabilitySummary, error) {
 	summary := &ObservabilitySummary{}
-	
+
 	// Check for Prometheus
 	if CheckNamespaceExists(ctx, client, "openshift-monitoring") {
 		summary.PrometheusInstalled = true
 		summary.Namespace = "openshift-monitoring"
 	}
-	
+
 	// Check for Grafana
 	if CheckNamespaceExists(ctx, client, "openshift-grafana") {
 		summary.GrafanaInstalled = true
 	}
-	
+
 	// Check for OpenTelemetry
 	otelGVR := schema.GroupVersionResource{
 		Group:    "opentelemetry.io",
@@ -174,15 +174,15 @@ func (s *ObservabilityService) GetSummary(ctx context.Context, client *clients.C
 	if CheckCRDExists(ctx, client, otelGVR) {
 		summary.OtelInstalled = true
 	}
-	
+
 	summary.Installed = summary.PrometheusInstalled || summary.GrafanaInstalled || summary.OtelInstalled
 	summary.Ready = summary.Installed
 	summary.Message = "Observability stack detected"
-	
+
 	if !summary.Installed {
 		summary.ComponentStatus = NotInstalledStatus("No observability components found")
 	}
-	
+
 	return summary, nil
 }
 
@@ -200,7 +200,7 @@ type VirtualizationStatus struct {
 
 func (s *VirtualizationService) GetStatus(ctx context.Context, client *clients.ClusterClient) (*VirtualizationStatus, error) {
 	status := &VirtualizationStatus{}
-	
+
 	// Check for KubeVirt/OpenShift Virtualization
 	virtNamespaces := []string{"openshift-cnv", "kubevirt"}
 	for _, ns := range virtNamespaces {
@@ -210,15 +210,15 @@ func (s *VirtualizationService) GetStatus(ctx context.Context, client *clients.C
 			break
 		}
 	}
-	
+
 	if !status.KubeVirtInstalled {
 		status.ComponentStatus = NotInstalledStatus("KubeVirt/OpenShift Virtualization not found")
 		return status, nil
 	}
-	
+
 	status.Installed = true
 	status.Ready = true
-	
+
 	// Check for VM CRD
 	vmGVR := schema.GroupVersionResource{
 		Group:    "kubevirt.io",
@@ -231,7 +231,7 @@ func (s *VirtualizationService) GetStatus(ctx context.Context, client *clients.C
 		status.Message = "KubeVirt namespace found but CRDs not detected"
 		status.Ready = false
 	}
-	
+
 	return status, nil
 }
 
@@ -249,21 +249,21 @@ type HCPStatus struct {
 
 func (s *HCPService) GetStatus(ctx context.Context, client *clients.ClusterClient) (*HCPStatus, error) {
 	status := &HCPStatus{}
-	
+
 	// Check for HyperShift namespace
 	if CheckNamespaceExists(ctx, client, "hypershift") {
 		status.HyperShiftInstalled = true
 		status.Namespace = "hypershift"
 	}
-	
+
 	if !status.HyperShiftInstalled {
 		status.ComponentStatus = NotInstalledStatus("HyperShift/HCP not found")
 		return status, nil
 	}
-	
+
 	status.Installed = true
 	status.Ready = true
-	
+
 	// Check for HostedCluster CRD
 	hcGVR := schema.GroupVersionResource{
 		Group:    "hypershift.openshift.io",
@@ -276,7 +276,7 @@ func (s *HCPService) GetStatus(ctx context.Context, client *clients.ClusterClien
 		status.Message = "HyperShift namespace found but CRDs not detected"
 		status.Ready = false
 	}
-	
+
 	return status, nil
 }
 

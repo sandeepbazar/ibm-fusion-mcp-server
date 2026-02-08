@@ -23,7 +23,7 @@ func InitJobsListTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type: jsonschema.Type{jsonschema.TypeObject},
+				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"target": targeting.TargetSchema(),
 				},
@@ -39,7 +39,8 @@ func handleBackupJobsList(params api.ToolHandlerParams) (*api.ToolCallResult, er
 	var input struct {
 		Target targeting.Target `json:"target"`
 	}
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 

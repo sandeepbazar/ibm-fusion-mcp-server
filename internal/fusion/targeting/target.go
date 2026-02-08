@@ -3,6 +3,8 @@ package targeting
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 // TargetType defines how clusters are targeted
@@ -245,39 +247,40 @@ func (r *Result) FailureCount() int {
 
 // TotalCount returns the total number of cluster operations
 func (r *Result) TotalCount() int {
+	return len(r.ClusterResults)
 }
 
 // TargetSchema returns the JSON schema for the target input parameter
 func TargetSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Type: jsonschema.Type{jsonschema.TypeObject},
+		Type: "object",
 		Properties: map[string]*jsonschema.Schema{
 			"type": {
-				Type: jsonschema.Type{jsonschema.TypeString},
-				Enum: []interface{}{"single", "multi", "fleet", "selector", "all"},
+				Type:        "string",
+				Enum:        []interface{}{"single", "multi", "fleet", "selector", "all"},
 				Description: "Targeting strategy: single (one cluster), multi (specific clusters), fleet (all in fleet), selector (label-based), all (all registered)",
 			},
 			"cluster": {
-				Type: jsonschema.Type{jsonschema.TypeString},
+				Type:        "string",
 				Description: "Single cluster name (for type=single)",
 			},
 			"clusters": {
-				Type: jsonschema.Type{jsonschema.TypeArray},
+				Type: "array",
 				Items: &jsonschema.Schema{
-					Type: jsonschema.Type{jsonschema.TypeString},
+					Type: "string",
 				},
 				Description: "List of cluster names (for type=multi)",
 			},
 			"fleet": {
-				Type: jsonschema.Type{jsonschema.TypeString},
+				Type:        "string",
 				Description: "Fleet name (for type=fleet)",
 			},
 			"selector": {
-				Type: jsonschema.Type{jsonschema.TypeString},
+				Type:        "string",
 				Description: "Label selector (for type=selector), format: key1=value1,key2=value2",
 			},
 			"timeout": {
-				Type: jsonschema.Type{jsonschema.TypeInteger},
+				Type:        "integer",
 				Description: "Operation timeout in seconds (default: 30)",
 			},
 		},
@@ -307,9 +310,3 @@ func (t *Target) ResolveClusterNames(registry interface{}) ([]string, error) {
 		return []string{"default"}, nil
 	}
 }
-
-// Made with Bob
-	return len(r.ClusterResults)
-}
-
-// Made with Bob

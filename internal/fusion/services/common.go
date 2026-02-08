@@ -24,7 +24,7 @@ func ExecuteOnClusters(ctx context.Context, registry *clients.Registry, target t
 	// Get cluster names based on target type
 	clusterNames, err := target.ResolveClusterNames(registry)
 	if err != nil {
-		result.Summary.Error = err.Error()
+		result.Summary = map[string]interface{}{"error": err.Error()}
 		return result
 	}
 
@@ -51,9 +51,9 @@ func ExecuteOnClusters(ctx context.Context, registry *clients.Registry, target t
 			client, err := registry.GetClient(name)
 			if err != nil {
 				resultChan <- targeting.ClusterResult{
-					Cluster: name,
-					Success: false,
-					Error:   fmt.Sprintf("failed to get client: %v", err),
+					ClusterName: name,
+					Success:     false,
+					Error:       fmt.Sprintf("failed to get client: %v", err),
 				}
 				return
 			}
@@ -62,9 +62,9 @@ func ExecuteOnClusters(ctx context.Context, registry *clients.Registry, target t
 			data, err := operation(opCtx, client)
 			if err != nil {
 				resultChan <- targeting.ClusterResult{
-					Cluster: name,
-					Success: false,
-					Error:   err.Error(),
+					ClusterName: name,
+					Success:     false,
+					Error:       err.Error(),
 				}
 				return
 			}
@@ -73,17 +73,17 @@ func ExecuteOnClusters(ctx context.Context, registry *clients.Registry, target t
 			jsonData, err := json.Marshal(data)
 			if err != nil {
 				resultChan <- targeting.ClusterResult{
-					Cluster: name,
-					Success: false,
-					Error:   fmt.Sprintf("failed to marshal data: %v", err),
+					ClusterName: name,
+					Success:     false,
+					Error:       fmt.Sprintf("failed to marshal data: %v", err),
 				}
 				return
 			}
 
 			resultChan <- targeting.ClusterResult{
-				Cluster: name,
-				Success: true,
-				Data:    json.RawMessage(jsonData),
+				ClusterName: name,
+				Success:     true,
+				Data:        json.RawMessage(jsonData),
 			}
 		}(clusterName)
 	}
@@ -96,7 +96,7 @@ func ExecuteOnClusters(ctx context.Context, registry *clients.Registry, target t
 
 	// Collect results
 	for clusterResult := range resultChan {
-		result.AddClusterResult(clusterResult.Cluster, clusterResult.Data, 
+		result.AddClusterResult(clusterResult.ClusterName, clusterResult.Data,
 			func() error {
 				if !clusterResult.Success {
 					return fmt.Errorf("%s", clusterResult.Error)
@@ -111,7 +111,7 @@ func ExecuteOnClusters(ctx context.Context, registry *clients.Registry, target t
 // CheckCRDExists checks if a CRD exists in the cluster
 func CheckCRDExists(ctx context.Context, client *clients.ClusterClient, gvr schema.GroupVersionResource) bool {
 	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(client.Config)
-	
+
 	_, apiResourceList, err := discoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		return false

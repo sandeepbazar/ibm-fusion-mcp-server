@@ -22,7 +22,7 @@ func InitStorageSummary() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{
 					// No input parameters for now
 				},

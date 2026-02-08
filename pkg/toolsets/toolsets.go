@@ -48,6 +48,7 @@ func Validate(toolsets []string) error {
 		}
 	}
 	return nil
+}
 
 func init() {
 	// IBM Fusion extension integration point
@@ -64,5 +65,4 @@ var registerFusionTools = func() {}
 // This is the single integration point for IBM Fusion tools
 func SetFusionRegistration(fn func()) {
 	registerFusionTools = fn
-}
 }

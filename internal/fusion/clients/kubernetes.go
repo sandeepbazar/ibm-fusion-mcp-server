@@ -22,7 +22,7 @@ func NewKubernetesClient(client api.KubernetesClient) *KubernetesClient {
 
 // ListStorageClasses retrieves all storage classes in the cluster
 func (c *KubernetesClient) ListStorageClasses(ctx context.Context) (*storagev1.StorageClassList, error) {
-	return c.client.Clientset().StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
+	return c.client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 }
 
 // ListPVCs retrieves all PVCs in a given namespace
@@ -30,7 +30,7 @@ func (c *KubernetesClient) ListPVCs(ctx context.Context, namespace string) (inte
 	if namespace == "" {
 		namespace = metav1.NamespaceAll
 	}
-	return c.client.Clientset().CoreV1().PersistentVolumeClaims(namespace).List(ctx, metav1.ListOptions{})
+	return c.client.CoreV1().PersistentVolumeClaims(namespace).List(ctx, metav1.ListOptions{})
 }
 
 // Made with Bob

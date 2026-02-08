@@ -23,7 +23,7 @@ func InitGDPStatusTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -33,7 +33,8 @@ func InitGDPStatusTool() api.ServerTool {
 
 func handleGDPStatus(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -55,7 +56,7 @@ func InitDRStatusTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -65,7 +66,8 @@ func InitDRStatusTool() api.ServerTool {
 
 func handleDRStatus(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -87,7 +89,7 @@ func InitCatalogStatusTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -97,7 +99,8 @@ func InitCatalogStatusTool() api.ServerTool {
 
 func handleCatalogStatus(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -119,7 +122,7 @@ func InitCASStatusTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -129,7 +132,8 @@ func InitCASStatusTool() api.ServerTool {
 
 func handleCASStatus(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -151,7 +155,7 @@ func InitServiceabilitySummaryTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -161,7 +165,8 @@ func InitServiceabilitySummaryTool() api.ServerTool {
 
 func handleServiceabilitySummary(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -183,7 +188,7 @@ func InitObservabilitySummaryTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -193,7 +198,8 @@ func InitObservabilitySummaryTool() api.ServerTool {
 
 func handleObservabilitySummary(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -215,7 +221,7 @@ func InitVirtualizationStatusTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -225,7 +231,8 @@ func InitVirtualizationStatusTool() api.ServerTool {
 
 func handleVirtualizationStatus(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)
@@ -247,7 +254,7 @@ func InitHCPStatusTool() api.ServerTool {
 				ReadOnlyHint: ptr.To(true),
 			},
 			InputSchema: &jsonschema.Schema{
-				Type:       jsonschema.Type{jsonschema.TypeObject},
+				Type:       "object",
 				Properties: map[string]*jsonschema.Schema{"target": targeting.TargetSchema()},
 			},
 		},
@@ -257,7 +264,8 @@ func InitHCPStatusTool() api.ServerTool {
 
 func handleHCPStatus(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
 	var input struct{ Target targeting.Target }
-	if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	argBytes, _ := json.Marshal(params.GetArguments())
+	if err := json.Unmarshal(argBytes, &input); err != nil {
 		input.Target = targeting.Target{Type: targeting.TargetSingle}
 	}
 	registry := clients.GetOrCreateRegistry(params.KubernetesClient)

@@ -28,34 +28,34 @@ func (t *Toolset) GetTools(o api.Openshift) []api.ServerTool {
 	return []api.ServerTool{
 		// Storage
 		storage.InitStorageSummary(),
-		
+
 		// Data Foundation
 		datafoundation.InitStatusTool(),
-		
+
 		// Backup & Restore
 		backup.InitJobsListTool(),
-		
+
 		// Global Data Platform
 		alltools.InitGDPStatusTool(),
-		
+
 		// Disaster Recovery
 		alltools.InitDRStatusTool(),
-		
+
 		// Data Cataloging
 		alltools.InitCatalogStatusTool(),
-		
+
 		// Content Aware Storage
 		alltools.InitCASStatusTool(),
-		
+
 		// Serviceability
 		alltools.InitServiceabilitySummaryTool(),
-		
+
 		// Observability
 		alltools.InitObservabilitySummaryTool(),
-		
+
 		// Virtualization
 		alltools.InitVirtualizationStatusTool(),
-		
+
 		// Hosted Control Planes
 		alltools.InitHCPStatusTool(),
 	}
