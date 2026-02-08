@@ -2,54 +2,87 @@
 
 **Canonical reference for managing the IBM Fusion fork of kubernetes-mcp-server**
 
-**Maintainer:** Sandeep Bazar  
-**GitHub:** [@sandeepbazar](https://github.com/sandeepbazar)  
-**Repository:** [ibm-fusion-mcp-server](https://github.com/sandeepbazar/ibm-fusion-mcp-server)  
-**Last Updated:** 2026-02-07  
-**Upstream Version:** Synced with containers/kubernetes-mcp-server main branch
+**Maintainer:** Sandeep Bazar
+**GitHub:** [@sandeepbazar](https://github.com/sandeepbazar)
+**Repository:** [ibm-fusion-mcp-server](https://github.com/sandeepbazar/ibm-fusion-mcp-server)
+**Upstream:** [containers/kubernetes-mcp-server](https://github.com/containers/kubernetes-mcp-server)
 
 ## What is This Repository?
 
 This is **ibm-fusion-mcp-server**, a fork of [containers/kubernetes-mcp-server](https://github.com/containers/kubernetes-mcp-server) that adds IBM Fusion-specific MCP tool extensions with **multi-cluster and fleet management** capabilities.
 
-**Upstream:** https://github.com/containers/kubernetes-mcp-server
+When Fusion tools are disabled (the default), the server behaves identically to upstream.
 
+---
 
-## 🚀 Getting Started (No Setup Required!)
+## Prerequisites
 
-**Good news!** All Fusion tools are already integrated into the main branch. No setup scripts needed!
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Go** | 1.25+ | For building from source |
+| **kubectl** | any | Configured with cluster access |
+| **kubeconfig** | — | At `~/.kube/config` or via `KUBECONFIG` env var |
+| **Node.js** | 18+ | Only needed for MCP Inspector testing |
 
-### Quick Start (3 Steps)
+---
+
+## Quick Start
+
+### 1. Clone and Build
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/sandeepbazar/ibm-fusion-mcp-server.git
 cd ibm-fusion-mcp-server
-
-# 2. Build the server
 make build
-
-# 3. Run with Fusion tools enabled
-FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server
 ```
 
-### Prerequisites
+### 2. Run the Server
 
-- **Go 1.25+** - For building the server
-- **kubectl** - Configured with access to your cluster(s)
-- **kubeconfig** - Located at `~/.kube/config` or set via `KUBECONFIG` environment variable
+Two things are required to activate Fusion tools:
 
-### Testing with MCP Inspector
+1. Set the environment variable `FUSION_TOOLS_ENABLED=true`
+2. Include `fusion` in the `--toolsets` flag
+
+#### STDIO Mode (for MCP clients like Claude Desktop)
 
 ```bash
-# Install MCP Inspector (one-time)
-npm install -g @modelcontextprotocol/inspector
-
-# Run server with inspector
-FUSION_TOOLS_ENABLED=true npx @modelcontextprotocol/inspector $(pwd)/kubernetes-mcp-server
+FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server --toolsets core,config,helm,fusion
 ```
 
-Then open your browser to the URL shown and try your first tool:
+#### HTTP Mode (for MCP Inspector, remote access, or multi-client)
+
+```bash
+FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server \
+  --port 9900 \
+  --toolsets core,config,helm,fusion
+```
+
+The server starts on `http://localhost:9900` with endpoints:
+- `/mcp` - Streamable HTTP MCP endpoint
+- `/sse` - SSE transport endpoint
+- `/healthz` - Health check
+- `/stats` - Runtime statistics
+- `/metrics` - Prometheus metrics
+
+### 3. Verify Fusion Tools Are Loaded
+
+```bash
+# HTTP mode - check the log output for this line:
+#   Toolsets: core, config, helm, fusion
+
+# Or hit the health endpoint:
+curl -s http://localhost:9900/healthz
+```
+
+### 4. Test with MCP Inspector
+
+```bash
+FUSION_TOOLS_ENABLED=true \
+  npx @modelcontextprotocol/inspector $(pwd)/kubernetes-mcp-server \
+  --toolsets core,config,helm,fusion
+```
+
+Open the URL shown in the terminal and invoke a tool:
 ```json
 {
   "name": "fusion.storage.summary",
@@ -57,200 +90,87 @@ Then open your browser to the URL shown and try your first tool:
 }
 ```
 
-### Multi-Cluster Setup
+---
 
-If you have multiple clusters, ensure your kubeconfig has multiple contexts:
-
-```bash
-# List your contexts
-kubectl config get-contexts
-
-# The server automatically registers all contexts
-# You can then target any cluster in your tools
-```
-
-### Environment Variables
+## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FUSION_TOOLS_ENABLED` | `false` | **Required** - Set to `true` to enable Fusion tools |
 | `KUBECONFIG` | `~/.kube/config` | Path to your kubeconfig file |
 | `FUSION_TIMEOUT` | `30` | Operation timeout in seconds |
+| `FUSION_LOG_BODY` | `none` | Diagnostic HTTP body logging: `none`, `summary`, or `full`. Requires `--log-level 6` or higher to produce output |
 
-### Verify Installation
+### Diagnostic Logging
+
+The `FUSION_LOG_BODY` variable enables response body diagnostics for Fusion cluster requests. This is useful for debugging API responses.
 
 ```bash
-# Check that Fusion tools are loaded
-FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server 2>&1 | grep "Registering IBM Fusion toolset"
+# Summary mode - logs method, URL, status, kind, item count
+FUSION_TOOLS_ENABLED=true FUSION_LOG_BODY=summary \
+  ./kubernetes-mcp-server --port 9900 --log-level 6 \
+  --toolsets core,config,helm,fusion
 
-# Should output: "Registering IBM Fusion toolset"
+# Full mode - also logs pretty-printed JSON body (capped at 16KB)
+FUSION_TOOLS_ENABLED=true FUSION_LOG_BODY=full \
+  ./kubernetes-mcp-server --port 9900 --log-level 6 \
+  --toolsets core,config,helm,fusion
 ```
 
-### What's Included
+All Fusion cluster requests use JSON wire format (never protobuf), so logs are always human-readable.
 
-✅ **11 Fusion MCP Tools** - All domains covered (see Tool Catalog below)  
-✅ **Multi-Cluster Support** - Single, multi, fleet, selector targeting  
-✅ **Comprehensive Documentation** - This file + quick start guide  
-✅ **No External Dependencies** - Everything is built-in  
-✅ **Feature Gated** - Disabled by default, no impact on upstream behavior  
+---
 
-**Purpose:** Provide specialized tools for managing IBM Fusion and OpenShift environments across **single clusters, multiple clusters, and entire fleets**:
+## Tool Catalog
 
-## IBM Fusion Architecture Mapping
+All 11 tools support multi-cluster targeting.
 
-IBM Fusion is organized into service domains (blue services) that this MCP server supports:
+| Tool Name | Domain | Description |
+|-----------|--------|-------------|
+| `fusion.storage.summary` | Storage | Storage classes, PVC stats, ODF detection |
+| `fusion.datafoundation.status` | Data Foundation | ODF/OCS installation and health status |
+| `fusion.gdp.status` | Global Data Platform | IBM Spectrum Scale/GDP status |
+| `fusion.backup.jobs.list` | Backup & Restore | List OADP/Velero backup jobs |
+| `fusion.dr.status` | Disaster Recovery | Metro/Regional DR status |
+| `fusion.catalog.status` | Data Cataloging | Data catalog service status |
+| `fusion.cas.status` | Content Aware Storage | CAS deployment status |
+| `fusion.serviceability.summary` | Serviceability | Must-gather and logging status |
+| `fusion.observability.summary` | Observability | Prometheus, Grafana, OTEL status |
+| `fusion.virtualization.status` | Virtualization | KubeVirt/OpenShift Virt status |
+| `fusion.hcp.status` | Hosted Control Planes | HyperShift/HCP status |
 
-### Fusion Data Services
-- **Data Foundation** - OpenShift Data Foundation (ODF/OCS) for persistent storage
-- **Global Data Platform (GDP)** - IBM Spectrum Scale integration for high-performance file storage
-- **Backup & Restore** - OADP/Velero-based backup and disaster recovery
-- **Disaster Recovery** - Metro DR and Regional DR for business continuity
-- **Data Cataloging** - Metadata management and data discovery
-- **Content Aware Storage (CAS)** - Intelligent storage tiering and optimization
+---
 
-### Fusion Base
-- **Serviceability** - Must-gather, logging, and diagnostic tools
-- **Observability** - Prometheus, Grafana, OpenTelemetry integration
-
-### Additional Capabilities
-- **Virtualization** - KubeVirt/OpenShift Virtualization for VM workloads
-- **Hosted Control Planes (HCP)** - HyperShift for multi-tenant cluster management
-
-## Design Goals and Non-Goals
-
-### Goals ✅
-
-1. **Keep upstream clean** - Minimize modifications to upstream code
-2. **Isolate Fusion changes** - All Fusion code lives in dedicated directories
-3. **Feature gating** - Fusion tools disabled by default, enabled via `FUSION_TOOLS_ENABLED=true`
-4. **Multi-cluster support** - Single cluster, multi-cluster, and fleet targeting
-5. **Maintain sync-ability** - Regular upstream syncs with minimal conflicts
-6. **Production-ready** - Well-tested, documented, and maintainable
-
-### Non-Goals ❌
-
-1. **No upstream PRs** - Fusion extensions are specific to IBM needs, not intended for upstream contribution
-2. **No upstream refactoring** - We adapt to upstream patterns, not change them
-3. **No breaking changes** - Fork must work exactly like upstream when Fusion tools are disabled
-
-## Directory Structure
-
-```
-ibm-fusion-mcp-server/
-├── README.md                           # Upstream README (+ 1 line pointer to this file)
-├── README.FUSION.md                    # ⭐ This file - canonical Fusion reference
-│
-├── internal/fusion/                    # 🔒 Internal Fusion implementation
-│   ├── config/
-│   │   ├── config.go                  # Feature gate (FUSION_TOOLS_ENABLED)
-│   │   └── config_test.go             # Config tests
-│   ├── clients/
-│   │   ├── kubernetes.go              # K8s client wrappers
-│   │   └── registry.go                # Multi-cluster client registry
-│   ├── services/
-│   │   ├── common.go                  # Shared service utilities
-│   │   ├── storage.go                 # Storage domain logic
-│   │   ├── datafoundation.go          # Data Foundation logic
-│   │   ├── backup.go                  # Backup & Restore logic
-│   │   └── multidom.go                # Multi-domain services
-│   └── targeting/
-│       └── target.go                  # Multi-cluster targeting model
-│
-├── pkg/toolsets/fusion/                # 🔓 Public Fusion toolset API
-│   ├── registry.go                    # Toolset registration hook
-│   ├── toolset.go                     # Toolset implementation
-│   ├── storage/
-│   │   ├── tool_storage_summary.go    # Storage summary tool
-│   │   └── types.go                   # Input/output types
-│   ├── datafoundation/
-│   │   └── tool_status.go             # Data Foundation status
-│   ├── backup/
-│   │   └── tool_jobs_list.go          # Backup jobs list
-│   └── alltools/
-│       └── tools.go                   # All other domain tools
-│
-├── docs/fusion/                        # 📚 Fusion documentation
-│   └── README.md                      # Quick start guide
-│
-└── [upstream files...]                # All other files from upstream
-```
-
-## Integration Points (Upstream Modifications)
-
-We touch **exactly 2 upstream files** to integrate Fusion extensions:
-
-### 1. `pkg/toolsets/toolsets.go` (11 lines added)
-
-**Why:** Single integration hook for Fusion toolset registration
-
-**What we added:**
-```go
-func init() {
-    // IBM Fusion extension integration point
-    registerFusionTools()
-}
-
-// registerFusionTools is a placeholder that will be implemented by the fusion package
-var registerFusionTools = func() {}
-
-// SetFusionRegistration allows the fusion package to hook into the registration process
-func SetFusionRegistration(fn func()) {
-    registerFusionTools = fn
-}
-```
-
-**Pattern:** Function variable hook that Fusion package populates via `SetFusionRegistration()`
-
-**Guidance:** All future Fusion integration must use this same hook. Do NOT add new integration points elsewhere.
-
-### 2. `pkg/mcp/modules.go` (1 line added)
-
-**Why:** Import Fusion package so its `init()` function runs
-
-**What we added:**
-```go
-import (
-    _ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/config"
-    _ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/core"
-    _ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/fusion"  // ← Added this line
-    _ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/helm"
-    // ... other imports
-)
-```
-
-**Pattern:** Blank import to trigger package initialization
-
-**Guidance:** This is the only import needed. Do NOT scatter Fusion imports across multiple files.
-
-## Multi-Cluster Architecture
+## Multi-Cluster Targeting
 
 ### Targeting Model
 
-Fusion tools support flexible cluster targeting:
-
 | Target Type | Description | Use Case |
 |-------------|-------------|----------|
-| **single** | Target one specific cluster | Default, most common operations |
-| **multi** | Target explicitly named clusters | Coordinated operations across specific clusters |
-| **fleet** | Target all clusters in a fleet/hub | Fleet-wide status checks |
-| **selector** | Target clusters matching labels | Environment-based operations (prod, dev, etc.) |
-| **all** | Target all registered clusters | Global operations |
+| **single** | One specific cluster (default) | Most common operations |
+| **multi** | Explicitly named clusters | Coordinated cross-cluster operations |
+| **fleet** | All clusters in the fleet | Fleet-wide health checks |
+| **selector** | Clusters matching labels | Environment-based targeting (prod, dev) |
+| **all** | All registered clusters | Global operations |
 
-### Client Registry
+### Multi-Cluster Setup
 
-The multi-cluster client registry (`internal/fusion/clients/registry.go`) provides:
+The server automatically registers all contexts from your kubeconfig:
 
-- **Thread-safe** concurrent operations across clusters
-- **Timeout control** per-cluster operation timeouts
-- **Graceful failure** handling - one cluster failure doesn't stop others
-- **Kubeconfig support** - multiple contexts, in-cluster config
-- **Result aggregation** - per-cluster results with summary
+```bash
+# List your available contexts
+kubectl config get-contexts
 
-## Single Cluster vs Multi-Cluster Usage
+# All contexts are registered automatically when the server starts
+```
 
-### Default Behavior (Single Cluster)
+---
 
-When no `target` is specified, tools operate on the **current kubeconfig context**:
+## Usage Examples
+
+### Default (Single Cluster - Current Context)
+
+When no `target` is specified, tools use the current kubeconfig context:
 
 ```json
 {
@@ -259,7 +179,65 @@ When no `target` is specified, tools operate on the **current kubeconfig context
 }
 ```
 
-**Response:**
+### Single Cluster (Named Context)
+
+```json
+{
+  "name": "fusion.backup.jobs.list",
+  "arguments": {
+    "target": {
+      "type": "single",
+      "cluster": "prod-us-east-1"
+    }
+  }
+}
+```
+
+### Multi-Cluster (Explicit List)
+
+```json
+{
+  "name": "fusion.dr.status",
+  "arguments": {
+    "target": {
+      "type": "multi",
+      "clusters": ["prod-us-east-1", "prod-us-west-2"]
+    }
+  }
+}
+```
+
+### Fleet (All Clusters)
+
+```json
+{
+  "name": "fusion.virtualization.status",
+  "arguments": {
+    "target": {
+      "type": "fleet"
+    }
+  }
+}
+```
+
+### Selector (Label-Based)
+
+```json
+{
+  "name": "fusion.observability.summary",
+  "arguments": {
+    "target": {
+      "type": "selector",
+      "selector": "env=prod,region=us"
+    }
+  }
+}
+```
+
+### Response Format
+
+All tools return a consistent response structure:
+
 ```json
 {
   "target": {
@@ -285,122 +263,20 @@ When no `target` is specified, tools operate on the **current kubeconfig context
 }
 ```
 
-### Single Cluster (Named Context)
-
-Target a specific kubeconfig context:
-
-```json
-{
-  "name": "fusion.backup.jobs.list",
-  "arguments": {
-    "target": {
-      "type": "single",
-      "cluster": "prod-us-east-1"
-    }
-  }
-}
-```
-
-### Multi-Cluster (Explicit List)
-
-Target multiple specific clusters:
-
-```json
-{
-  "name": "fusion.dr.status",
-  "arguments": {
-    "target": {
-      "type": "multi",
-      "clusters": ["prod-us-east-1", "prod-us-west-2"]
-    }
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "target": {
-    "type": "multi",
-    "clusters": ["prod-us-east-1", "prod-us-west-2"]
-  },
-  "clusterResults": {
-    "prod-us-east-1": {
-      "clusterName": "prod-us-east-1",
-      "success": true,
-      "data": {
-        "installed": true,
-        "ready": true,
-        "message": "DR CRDs found (Ramen DR)"
-      }
-    },
-    "prod-us-west-2": {
-      "clusterName": "prod-us-west-2",
-      "success": true,
-      "data": {
-        "installed": true,
-        "ready": true,
-        "message": "DR CRDs found (Ramen DR)"
-      }
-    }
-  },
-  "summary": {
-    "clustersTotal": 2,
-    "clustersOk": 2,
-    "clustersFailed": 0
-  }
-}
-```
-
-### Fleet (All Clusters)
-
-Target all clusters in your fleet:
-
-```json
-{
-  "name": "fusion.virtualization.status",
-  "arguments": {
-    "target": {
-      "type": "fleet"
-    }
-  }
-}
-```
-
-### Selector (Label-Based)
-
-Target clusters matching criteria:
-
-```json
-{
-  "name": "fusion.observability.summary",
-  "arguments": {
-    "target": {
-      "type": "selector",
-      "selector": "env=prod,region=us"
-    }
-  }
-}
-```
+---
 
 ## Fleet Admin Scenarios
 
-Real-world scenarios for fleet administrators:
-
-### 1. Check Data Foundation Health Across All Clusters
+### Morning Health Check - Data Foundation Across All Clusters
 
 ```json
 {
   "name": "fusion.datafoundation.status",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
+  "arguments": { "target": {"type": "fleet"} }
 }
 ```
 
-**Use Case:** Morning health check - verify ODF is running on all clusters
-
-### 2. List Backup Jobs Across Prod and DR
+### Verify Backup Jobs on Primary and DR Sites
 
 ```json
 {
@@ -414,74 +290,25 @@ Real-world scenarios for fleet administrators:
 }
 ```
 
-**Use Case:** Verify backup jobs completed successfully on both sites
-
-### 3. Find Which Clusters Have Virtualization Installed
+### Inventory Check - Which Clusters Have Virtualization
 
 ```json
 {
   "name": "fusion.virtualization.status",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
+  "arguments": { "target": {"type": "fleet"} }
 }
 ```
 
-**Use Case:** Inventory check - which clusters support VM workloads
-
-### 4. HCP Overview Across Fleet
-
-```json
-{
-  "name": "fusion.hcp.status",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
-}
-```
-
-**Use Case:** Check HyperShift deployment status across management clusters
-
-### 5. DR Readiness Summary for All Clusters
+### DR Readiness Audit
 
 ```json
 {
   "name": "fusion.dr.status",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
+  "arguments": { "target": {"type": "fleet"} }
 }
 ```
 
-**Use Case:** Disaster recovery audit - verify DR is configured everywhere
-
-### 6. CAS Installed Where?
-
-```json
-{
-  "name": "fusion.cas.status",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
-}
-```
-
-**Use Case:** Find clusters with Content Aware Storage deployed
-
-### 7. Cataloging Health Across Fleet
-
-```json
-{
-  "name": "fusion.catalog.status",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
-}
-```
-
-**Use Case:** Verify data cataloging services are operational
-
-### 8. Storage Classes Drift Across Clusters
+### Compare Storage Classes Across Prod Clusters
 
 ```json
 {
@@ -495,308 +322,235 @@ Real-world scenarios for fleet administrators:
 }
 ```
 
-**Use Case:** Compare storage class configurations for consistency
-
-### 9. PVC Pending Hotspots Per Cluster
-
-```json
-{
-  "name": "fusion.storage.summary",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
-}
-```
-
-**Use Case:** Identify clusters with pending PVCs (storage issues)
-
-### 10. Observability Stack Status Per Cluster
+### Observability Stack Status Fleet-Wide
 
 ```json
 {
   "name": "fusion.observability.summary",
-  "arguments": {
-    "target": {"type": "fleet"}
-  }
+  "arguments": { "target": {"type": "fleet"} }
 }
 ```
 
-**Use Case:** Verify Prometheus/Grafana/OTEL are running everywhere
+---
 
-## Tool Catalog
+## Architecture
 
-### Implemented Tools ✅
+### IBM Fusion Domain Mapping
 
-| Tool Name | Domain | Description | Multi-Cluster |
-|-----------|--------|-------------|---------------|
-| `fusion.storage.summary` | Storage | Storage classes, PVC stats, ODF detection | ✅ |
-| `fusion.datafoundation.status` | Data Foundation | ODF/OCS installation and health status | ✅ |
-| `fusion.gdp.status` | Global Data Platform | IBM Spectrum Scale/GDP status | ✅ |
-| `fusion.backup.jobs.list` | Backup & Restore | List OADP/Velero backup jobs | ✅ |
-| `fusion.dr.status` | Disaster Recovery | Metro/Regional DR status | ✅ |
-| `fusion.catalog.status` | Data Cataloging | Data catalog service status | ✅ |
-| `fusion.cas.status` | Content Aware Storage | CAS deployment status | ✅ |
-| `fusion.serviceability.summary` | Serviceability | Must-gather and logging status | ✅ |
-| `fusion.observability.summary` | Observability | Prometheus, Grafana, OTEL status | ✅ |
-| `fusion.virtualization.status` | Virtualization | KubeVirt/OpenShift Virt status | ✅ |
-| `fusion.hcp.status` | Hosted Control Planes | HyperShift/HCP status | ✅ |
+IBM Fusion is organized into service domains that this MCP server covers:
 
-### Planned Enhancements 🚧
+**Fusion Data Services:**
+- **Data Foundation** - OpenShift Data Foundation (ODF/OCS) for persistent storage
+- **Global Data Platform (GDP)** - IBM Spectrum Scale for high-performance file storage
+- **Backup & Restore** - OADP/Velero-based backup and disaster recovery
+- **Disaster Recovery** - Metro DR and Regional DR for business continuity
+- **Data Cataloging** - Metadata management and data discovery
+- **Content Aware Storage (CAS)** - Intelligent storage tiering
 
-1. **Storage Domain**
-   - `fusion.storage.pvc.list` - List PVCs with filtering
-   - `fusion.storage.pvc.resize` - Resize PVC operations
-   - `fusion.storage.classes.compare` - Compare storage classes across clusters
+**Fusion Base:**
+- **Serviceability** - Must-gather, logging, diagnostics
+- **Observability** - Prometheus, Grafana, OpenTelemetry
 
-2. **Backup Domain**
-   - `fusion.backup.policies.list` - List backup policies
-   - `fusion.backup.schedule.status` - Check backup schedules
+**Additional Capabilities:**
+- **Virtualization** - KubeVirt/OpenShift Virtualization for VM workloads
+- **Hosted Control Planes (HCP)** - HyperShift for multi-tenant cluster management
 
-3. **Virtualization Domain**
-   - `fusion.vm.list` - List virtual machines
-   - `fusion.vm.migrate` - Migrate VMs between nodes
+### Directory Structure
 
-4. **HCP Domain**
-   - `fusion.hcp.list` - List hosted clusters
-   - `fusion.hcp.nodepool.status` - Check node pool status
-
-## Running the Server
-
-### Local Development (Single Cluster)
-
-```bash
-# Build the server
-make build
-
-# Run with Fusion tools enabled (uses current kubeconfig context)
-FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server
-
-# Run with MCP Inspector for testing
-FUSION_TOOLS_ENABLED=true npx @modelcontextprotocol/inspector $(pwd)/kubernetes-mcp-server
+```
+ibm-fusion-mcp-server/
+├── README.md                              # Upstream README
+├── README.FUSION.md                       # This file - canonical Fusion reference
+│
+├── internal/fusion/                       # Internal Fusion implementation
+│   ├── config/
+│   │   ├── config.go                     # Feature gate (FUSION_TOOLS_ENABLED)
+│   │   └── config_test.go
+│   ├── clients/
+│   │   ├── kubernetes.go                 # K8s client wrappers
+│   │   ├── registry.go                   # Multi-cluster client registry
+│   │   └── diagnostic_round_tripper.go   # HTTP diagnostic logging (FUSION_LOG_BODY)
+│   ├── services/
+│   │   ├── common.go                     # Shared service utilities
+│   │   ├── storage.go                    # Storage domain logic
+│   │   ├── datafoundation.go            # Data Foundation logic
+│   │   ├── backup.go                     # Backup & Restore logic
+│   │   └── multidom.go                   # Multi-domain services
+│   └── targeting/
+│       └── target.go                     # Multi-cluster targeting model
+│
+├── pkg/toolsets/fusion/                   # Public Fusion toolset API
+│   ├── registry.go                       # Toolset registration
+│   ├── toolset.go                        # Toolset implementation
+│   ├── storage/
+│   │   └── tool_storage_summary.go
+│   ├── datafoundation/
+│   │   └── tool_status.go
+│   ├── backup/
+│   │   └── tool_jobs_list.go
+│   └── alltools/
+│       └── tools.go                      # All other domain tools
+│
+├── docs/fusion/
+│   └── README.md                         # Quick start guide
+│
+└── [upstream files...]
 ```
 
-### Multi-Cluster Setup
+### Design Goals
 
-```bash
-# Ensure your kubeconfig has multiple contexts
-kubectl config get-contexts
+1. **Keep upstream clean** - Minimize modifications to upstream code
+2. **Isolate Fusion changes** - All Fusion code in `internal/fusion/` and `pkg/toolsets/fusion/`
+3. **Feature gating** - Disabled by default via `FUSION_TOOLS_ENABLED`
+4. **Multi-cluster support** - Single, multi, fleet, and selector targeting
+5. **Maintain sync-ability** - Regular upstream syncs with minimal conflicts
+6. **JSON wire format** - All Fusion API calls use JSON (never protobuf) for readable diagnostics
 
-# The server will automatically register all contexts
-FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server
+### Integration Points (Upstream Modifications)
 
-# Tools can now target any registered context
+We touch **exactly 2 upstream files**:
+
+**1. `pkg/toolsets/toolsets.go`** - Hook for Fusion toolset registration:
+```go
+func init() {
+    registerFusionTools()
+}
+var registerFusionTools = func() {}
+func SetFusionRegistration(fn func()) {
+    registerFusionTools = fn
+}
 ```
 
-### Environment Variables
+**2. `pkg/mcp/modules.go`** - Blank import to trigger Fusion init:
+```go
+_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/fusion"
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FUSION_TOOLS_ENABLED` | `false` | Enable Fusion tools |
-| `KUBECONFIG` | `~/.kube/config` | Path to kubeconfig file |
-| `FUSION_TIMEOUT` | `30` | Default operation timeout (seconds) |
+The Fusion `init()` in `pkg/toolsets/fusion/registry.go` calls `RegisterTools()` directly (since `toolsets.init()` runs first due to Go init ordering).
 
-## Troubleshooting
+---
 
-### Issue: "I don't see my changes on GitHub"
-
-**Checklist:**
-1. ✅ Verify you're on the correct branch: `git branch`
-2. ✅ Verify commit was made: `git log -1`
-3. ✅ Verify push succeeded: `git log origin/fusion-tools-v2`
-4. ✅ Check GitHub URL uses correct branch: `/blob/fusion-tools-v2/`
-5. ✅ Clear browser cache or try incognito mode
-
-### Issue: "Tool returns 'not installed' but component exists"
-
-**Cause:** CRD detection may be failing
-
-**Solution:**
-1. Check if CRDs exist: `kubectl get crds | grep <component>`
-2. Verify namespace exists: `kubectl get ns | grep <namespace>`
-3. Check tool logs for specific error messages
-
-### Issue: "Multi-cluster operation times out"
-
-**Cause:** One or more clusters are slow or unreachable
-
-**Solution:**
-1. Increase timeout in target: `"timeout": 60`
-2. Check cluster connectivity: `kubectl --context=<cluster> get nodes`
-3. Review per-cluster errors in response
-
-### Issue: "Fusion tools not loading"
-
-**Checklist:**
-1. ✅ `FUSION_TOOLS_ENABLED=true` is set
-2. ✅ Server logs show "Registering IBM Fusion toolset"
-3. ✅ Integration hooks are present in `pkg/toolsets/toolsets.go` and `pkg/mcp/modules.go`
-4. ✅ Rebuild after changes: `make build`
-
-## Contributing
-
-### Adding a New Tool
-
-See the detailed guide in the original README sections (lines 611-700).
-
-### Testing
+## Testing
 
 ```bash
-# Test all Fusion code
+# Run all Fusion tests
 go test ./internal/fusion/... ./pkg/toolsets/fusion/...
 
-# Test with coverage
+# With coverage
 go test -cover ./internal/fusion/... ./pkg/toolsets/fusion/...
 
-# Test specific package
-go test ./pkg/toolsets/fusion/datafoundation/...
+# Full project build + lint
+make build
 ```
 
-### Code Style
-
-- Follow existing patterns in the codebase
-- Use `testify/suite` for tests
-- Add godoc comments for exported functions
-- Keep tools read-only for safety
-
-## Upstream Sync
-
-See the comprehensive upstream sync documentation in the original README (lines 115-453).
-
-**Quick sync:**
-```bash
-./hack/fusion/sync.sh
-```
+---
 
 ## Troubleshooting
 
-### Build Error: "module found but does not contain package"
+### Fusion Tools Not Appearing
 
-**Symptom:**
-```
-go: module github.com/munnerz/goautoneg@latest found (v0.0.0-20191010083416-a7dc8b61c822), 
-    but does not contain package github.com/munnerz/goautoneg
-```
-
-**Cause:** Go module cache corruption (common issue, not related to Fusion code)
-
-**Solution:**
-```bash
-# Clean the Go module cache
-rm -rf ~/go/pkg/mod/cache
-go clean -modcache
-
-# Re-download modules
-go mod download
-
-# Try building again
-make build
-```
-
-**Alternative (if above doesn't work):**
-```bash
-# Use Go's built-in cache verification
-go clean -modcache
-GOPROXY=direct go mod download
-make build
-```
-
-### Fusion Tools Not Loading
-
-**Symptom:** Server starts but Fusion tools are not available
+**Symptom:** Server starts but Fusion tools are not available.
 
 **Checklist:**
-1. ✅ Verify environment variable is set:
-   ```bash
-   echo $FUSION_TOOLS_ENABLED
-   # Should output: true
-   ```
+1. Verify `FUSION_TOOLS_ENABLED=true` is set
+2. Verify `--toolsets` includes `fusion` (e.g., `--toolsets core,config,helm,fusion`)
+3. Server log shows `Toolsets: core, config, helm, fusion`
+4. Rebuild after changes: `make build`
 
-2. ✅ Check server logs for registration message:
-   ```bash
-   FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server 2>&1 | grep "Registering IBM Fusion toolset"
-   # Should output: "Registering IBM Fusion toolset"
-   ```
-
-3. ✅ Verify you're on the main branch:
-   ```bash
-   git branch
-   # Should show: * main
-   ```
-
-4. ✅ Rebuild after pulling latest changes:
-   ```bash
-   git pull origin main
-   make build
-   ```
-
-### Multi-Cluster Timeout
-
-**Symptom:** Operations timeout when targeting multiple clusters
-
-**Solution:** Increase timeout in tool arguments:
-```json
-{
-  "name": "fusion.datafoundation.status",
-  "arguments": {
-    "target": {
-      "type": "multi",
-      "clusters": ["cluster1", "cluster2"],
-      "timeout": 60
-    }
-  }
-}
+```bash
+# Quick verification
+FUSION_TOOLS_ENABLED=true ./kubernetes-mcp-server \
+  --port 9900 --log-level 2 \
+  --toolsets core,config,helm,fusion
+# Look for: "Toolsets: core, config, helm, fusion" in the log output
 ```
 
 ### Component Shows "Not Installed"
 
-**Symptom:** Tool returns `"installed": false` but component exists
+**Symptom:** Tool returns `"installed": false` but component exists.
 
-**Possible Causes:**
-1. **Namespace mismatch** - Component in different namespace than expected
-2. **CRD not found** - Custom Resource Definition not installed
-3. **Permissions** - Service account lacks RBAC permissions
+**Causes:**
+- Namespace mismatch - component in a different namespace than expected
+- CRD not found - Custom Resource Definition not installed
+- Insufficient RBAC permissions
 
-**Debug Steps:**
+**Debug:**
 ```bash
-# Check if CRDs exist
 kubectl get crds | grep <component-name>
-
-# Check if namespace exists
 kubectl get ns | grep <namespace-name>
+kubectl auth can-i list <resource> --as=system:serviceaccount:<ns>:<sa>
+```
 
-# Check RBAC permissions (if running in-cluster)
-kubectl auth can-i list <resource> --as=system:serviceaccount:<namespace>:<serviceaccount>
+### Multi-Cluster Operation Timeout
+
+**Symptom:** Operations timeout when targeting multiple clusters.
+
+**Solution:** Increase timeout in the target:
+```json
+{
+  "target": {
+    "type": "multi",
+    "clusters": ["cluster1", "cluster2"],
+    "timeout": 60
+  }
+}
+```
+
+Also verify each cluster is reachable:
+```bash
+kubectl --context=<context-name> get nodes
+```
+
+### Build Error: Module Cache Corruption
+
+**Symptom:**
+```
+go: module ... found but does not contain package ...
+```
+
+**Solution:**
+```bash
+go clean -modcache
+go mod download
+make build
 ```
 
 ### Connection Refused / Cluster Unreachable
 
-**Symptom:** Error connecting to cluster
-
-**Solution:**
 ```bash
 # Verify kubeconfig is valid
 kubectl config view
-
-# Test connection to each context
 kubectl config get-contexts
+
+# Test each context
 kubectl --context=<context-name> get nodes
-
-# Check if context is accessible
-kubectl config use-context <context-name>
-kubectl get nodes
 ```
-
-
-## Support
-
-**Maintainer:** Sandeep Bazar  
-**GitHub:** [@sandeepbazar](https://github.com/sandeepbazar)
-
-For issues, please check:
-1. This README.FUSION.md
-2. docs/fusion/README.md
-3. GitHub Issues: https://github.com/sandeepbazar/ibm-fusion-mcp-server/issues
 
 ---
 
-**Made with ❤️ by IBM Bob**
+## Upstream Sync
+
+```bash
+# Quick sync
+./hack/fusion/sync.sh
+```
+
+All Fusion code is isolated in `internal/fusion/` and `pkg/toolsets/fusion/`, so upstream syncs should produce minimal conflicts. The only upstream files touched are `pkg/toolsets/toolsets.go` and `pkg/mcp/modules.go`.
+
+---
+
+## Planned Enhancements
+
+1. **Storage** - `fusion.storage.pvc.list`, `fusion.storage.pvc.resize`, `fusion.storage.classes.compare`
+2. **Backup** - `fusion.backup.policies.list`, `fusion.backup.schedule.status`
+3. **Virtualization** - `fusion.vm.list`, `fusion.vm.migrate`
+4. **HCP** - `fusion.hcp.list`, `fusion.hcp.nodepool.status`
+
+---
+
+## Support
+
+**Maintainer:** Sandeep Bazar
+**GitHub:** [@sandeepbazar](https://github.com/sandeepbazar)
+
+For issues: https://github.com/sandeepbazar/ibm-fusion-mcp-server/issues

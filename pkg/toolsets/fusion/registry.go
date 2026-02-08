@@ -21,9 +21,9 @@ func RegisterTools() {
 }
 
 func init() {
-	// Hook into the upstream toolsets package
-	// This replaces the no-op function with our registration logic
-	toolsets.SetFusionRegistration(RegisterTools)
+	// Register directly during init since the toolsets.init() hook runs
+	// before this package's init (toolsets is a dependency, so it inits first).
+	RegisterTools()
 }
 
 // Made with Bob
