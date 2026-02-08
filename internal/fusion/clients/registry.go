@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -51,6 +52,11 @@ func (r *Registry) RegisterInCluster() error {
 	if err != nil {
 		return fmt.Errorf("failed to get in-cluster config: %w", err)
 	}
+	config.AcceptContentTypes = "application/json"
+	config.ContentType = "application/json"
+	config.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return &DiagnosticRoundTripper{delegate: rt}
+	})
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -121,6 +127,11 @@ func (r *Registry) registerContext(config *api.Config, contextName string, conte
 	if err != nil {
 		return fmt.Errorf("failed to create client config for context %s: %w", contextName, err)
 	}
+	restConfig.AcceptContentTypes = "application/json"
+	restConfig.ContentType = "application/json"
+	restConfig.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return &DiagnosticRoundTripper{delegate: rt}
+	})
 
 	// Set timeout
 	restConfig.Timeout = r.timeout
@@ -274,7 +285,6 @@ type ClusterResult struct {
 	Result      interface{}
 	Error       error
 }
-
 
 // Global registry instance (singleton pattern for simplicity)
 var (
